@@ -74,7 +74,31 @@ If LONGTERM.md is getting long (>150 lines), also look for entries that are outd
 
 If nothing warrants adding, do not touch the file.
 
-## 6. Write end-of-day log entry
+## 6. Note unexpected connections
+
+You now have today's conversations and LONGTERM.md both in context.
+Look for associations that aren't obvious:
+
+- Topics from different conversations that rhyme or contradict each other
+- Something discussed today that relates to an older long-term memory in a non-obvious way
+- A pattern forming across multiple days that the owner might not have noticed
+- A question raised in one conversation that's answered by context in another
+
+If you spot a genuine connection, append it to today's daily log under:
+
+```
+## Connections
+
+- <the connection, 1-2 sentences>
+```
+
+Only log connections that would be useful or surprising. "Owner discussed X and Y"
+is not a connection. "Owner's preference for plain Markdown (from identity setup)
+conflicts with the vector DB approach discussed in the memory survey" is.
+
+If nothing connects, skip this section entirely.
+
+## 7. Write end-of-day log entry
 
 Append to today's daily log:
 
@@ -85,7 +109,7 @@ Append to today's daily log:
 - Summary: <one sentence describing the day's activity, or "quiet day">
 ```
 
-## 7. Decide whether to email the owner
+## 8. Decide whether to email the owner
 
 Email ONLY if:
 - Something significant was added to LONGTERM.md that the owner should be aware of
@@ -102,6 +126,6 @@ curl -s -X POST http://169.254.169.254/gateway/email/send \
 
 Keep it brief. Bullet points. No fluff.
 
-## 8. Done
+## 9. Done
 
 Confirm consolidation is complete.
