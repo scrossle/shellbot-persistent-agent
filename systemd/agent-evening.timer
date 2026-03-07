@@ -1,0 +1,9 @@
+[Unit]
+Description=Agent evening consolidation timer
+
+[Timer]
+OnCalendar=*-*-* 22:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
