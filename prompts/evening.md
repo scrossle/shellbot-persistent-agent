@@ -6,15 +6,46 @@ You are performing the end-of-day consolidation. Do the following steps in order
 
 Read `~/.agent/memory/daily/$(date '+%Y-%m-%d').md`.
 
-If it doesn't exist or is empty, write a one-line entry noting no activity was logged today, then stop.
+If it doesn't exist or is empty, create it with a header before continuing.
 
-## 2. Read LONGTERM.md
+## 2. Scan today's interactive conversations
+
+Query shelley.db for today's conversations and skim the user/agent messages:
+
+```bash
+sqlite3 ~/.config/shelley/shelley.db "
+SELECT conversation_id, slug FROM conversations
+WHERE date(created_at,'localtime') = date('now','localtime')
+ORDER BY created_at;
+"
+```
+
+For each conversation, extract the user and agent messages (first 300 chars each):
+
+```bash
+sqlite3 ~/.config/shelley/shelley.db "
+SELECT CASE type WHEN 'user' THEN 'User' ELSE 'Agent' END,
+       substr(json_extract(llm_data, '\$.Content[0].Text'), 1, 300)
+FROM messages
+WHERE conversation_id='CONVERSATION_ID'
+  AND type IN ('user','agent')
+  AND json_extract(llm_data, '\$.Content[0].Type') = 2
+  AND json_extract(llm_data, '\$.Content[0].Text') != ''
+ORDER BY sequence_id;
+"
+```
+
+Skim these for durable knowledge: owner preferences, decisions, system facts, project
+context, things the owner explicitly asked to remember. Ignore routine task execution,
+debugging details, and transient chatter.
+
+## 3. Read LONGTERM.md
 
 Read `~/.agent/memory/LONGTERM.md` so you know what's already captured there.
 
-## 3. Extract durable knowledge
+## 4. Extract durable knowledge
 
-Review today's log and identify anything that should persist beyond today:
+Review today's log and today's conversations. Identify anything that should persist beyond today:
 
 - Owner preferences or decisions (e.g., "owner prefers Python over Node", "deploy target is X")
 - System configuration facts (e.g., "added nginx reverse proxy on port 8080")
@@ -28,7 +59,7 @@ Be very selective. LONGTERM.md must stay under ~200 lines. Do NOT add:
 - Anything already in LONGTERM.md
 - Vague observations
 
-## 4. Update LONGTERM.md (only if warranted)
+## 5. Update LONGTERM.md (only if warranted)
 
 If you identified durable knowledge in step 3, append it to `~/.agent/memory/LONGTERM.md` under an appropriate heading. Use this format:
 
@@ -43,7 +74,7 @@ If LONGTERM.md is getting long (>150 lines), also look for entries that are outd
 
 If nothing warrants adding, do not touch the file.
 
-## 5. Write end-of-day log entry
+## 6. Write end-of-day log entry
 
 Append to today's daily log:
 
@@ -54,7 +85,7 @@ Append to today's daily log:
 - Summary: <one sentence describing the day's activity, or "quiet day">
 ```
 
-## 6. Decide whether to email the owner
+## 7. Decide whether to email the owner
 
 Email ONLY if:
 - Something significant was added to LONGTERM.md that the owner should be aware of
@@ -71,6 +102,6 @@ curl -s -X POST http://169.254.169.254/gateway/email/send \
 
 Keep it brief. Bullet points. No fluff.
 
-## 7. Done
+## 8. Done
 
 Confirm consolidation is complete.
