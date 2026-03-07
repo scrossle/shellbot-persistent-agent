@@ -91,6 +91,21 @@ else
     echo "  WARNING: ~/.config/shelley/ not found. Is Shelley installed?"
 fi
 
+# --- Build and install status panel ---
+echo ""
+echo "Building status panel..."
+PANEL_DIR="${SCRIPT_DIR}/panel"
+if [[ -f "${PANEL_DIR}/go.mod" ]]; then
+    (cd "${PANEL_DIR}" && go build -o "${AGENT_DIR}/bin/agent-panel" ./cmd/srv/) 2>&1
+    if [[ $? -eq 0 ]]; then
+        echo "  Built agent-panel"
+    else
+        echo "  WARNING: Failed to build agent-panel. Skipping panel install."
+    fi
+else
+    echo "  WARNING: panel/go.mod not found. Skipping panel."
+fi
+
 # --- Install systemd units ---
 echo ""
 echo "Installing systemd timers..."
@@ -108,6 +123,12 @@ for timer in agent-morning agent-evening agent-health agent-weekly agent-curiosi
     sudo systemctl enable --now "${timer}.timer" 2>/dev/null
     echo "  Enabled ${timer}.timer"
 done
+
+# Enable panel if binary exists
+if [[ -x "${AGENT_DIR}/bin/agent-panel" ]]; then
+    sudo systemctl enable --now agent-panel.service 2>/dev/null
+    echo "  Enabled agent-panel.service (port 8000)"
+fi
 
 # --- Seed today's daily log ---
 TODAY=$(date +%Y-%m-%d)

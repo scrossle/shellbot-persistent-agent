@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Hostname}} — Agent Status</title>
+<style>
+  :root {
+    --bg: #0d1117; --fg: #c9d1d9; --card: #161b22; --border: #30363d;
+    --accent: #58a6ff; --green: #3fb950; --yellow: #d29922; --red: #f85149;
+    --muted: #8b949e; --mono: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--fg); padding: 1.5rem; max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; }
+  .card h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 0.75rem; }
+  .health-grid { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.75rem; font-size: 0.9rem; }
+  .health-grid dt { color: var(--muted); }
+  .health-grid dd { font-family: var(--mono); font-size: 0.85rem; }
+  .status-ok { color: var(--green); }
+  .status-warn { color: var(--yellow); }
+  .status-bad { color: var(--red); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th { text-align: left; color: var(--muted); font-weight: 500; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border); }
+  td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 0.8rem; }
+  .full { grid-column: 1 / -1; }
+  pre { font-family: var(--mono); font-size: 0.8rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; color: var(--fg); max-height: 400px; overflow-y: auto; padding: 0.5rem; background: var(--bg); border-radius: 4px; }
+  .empty { color: var(--muted); font-style: italic; font-size: 0.85rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<h1>● {{.Hostname}}</h1>
+<div class="subtitle">{{.Now}}{{if .UserEmail}} • {{.UserEmail}}{{end}}</div>
+
+<div class="grid">
+
+  <div class="card">
+    <h2>Health</h2>
+    <dl class="health-grid">
+      <dt>Uptime</dt><dd>{{.Health.Uptime}}</dd>
+      <dt>Disk</dt><dd>{{.Health.Disk}}</dd>
+      <dt>Memory</dt><dd>{{.Health.Memory}}</dd>
+      <dt>Load</dt><dd>{{.Health.Load}}</dd>
+      <dt>Shelley</dt><dd class="{{if eq .Health.Shelley "active"}}status-ok{{else}}status-bad{{end}}">{{.Health.Shelley}}</dd>
+      <dt>Failed</dt><dd class="{{if eq .Health.Failed "none"}}status-ok{{else}}status-bad{{end}}">{{.Health.Failed}}</dd>
+    </dl>
+  </div>
+
+  <div class="card">
+    <h2>Timers</h2>
+    {{if .Timers}}
+    <table>
+      <tr><th>Task</th><th>Next</th></tr>
+      {{range .Timers}}
+      <tr><td>{{.Name}}</td><td>{{.Next}}</td></tr>
+      {{end}}
+    </table>
+    {{else}}<p class="empty">No timers found</p>{{end}}
+  </div>
+
+  <div class="card full">
+    <h2>Recent Runs</h2>
+    {{if .RecentRuns}}
+    <table>
+      <tr><th>Time</th><th>Prompt</th><th>Conversation</th></tr>
+      {{range .RecentRuns}}
+      <tr><td>{{.Timestamp}}</td><td>{{.Prompt}}</td><td>{{.ConvID}}</td></tr>
+      {{end}}
+    </table>
+    {{else}}<p class="empty">No runs yet</p>{{end}}
+  </div>
+
+  <div class="card full">
+    <h2>Today's Daily Log</h2>
+    {{if .DailyLog}}<pre>{{.DailyLog}}</pre>{{else}}<p class="empty">No entries today</p>{{end}}
+  </div>
+
+  <div class="card full">
+    <h2>Long-Term Memory</h2>
+    {{if .LongTerm}}<pre>{{.LongTerm}}</pre>{{else}}<p class="empty">Empty</p>{{end}}
+  </div>
+
+  <div class="card full">
+    <h2>Identity</h2>
+    {{if .Identity}}<pre>{{.Identity}}</pre>{{else}}<p class="empty">Not configured</p>{{end}}
+  </div>
+
+</div>
+
+</body>
+</html>

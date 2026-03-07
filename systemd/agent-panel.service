@@ -1,0 +1,14 @@
+[Unit]
+Description=Agent Status Panel
+After=network.target
+
+[Service]
+Type=simple
+User=exedev
+WorkingDirectory=/home/exedev/.agent
+ExecStart=/home/exedev/.agent/bin/agent-panel -listen :8000
+Restart=on-failure
+Environment=HOME=/home/exedev
+
+[Install]
+WantedBy=multi-user.target

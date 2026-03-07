@@ -97,6 +97,19 @@ they turn out to matter.
 
 Disable it by adding `curiosity: off` to `~/.agent/identity.md`.
 
+## Status Panel
+
+A web dashboard runs on port 8000, showing:
+- VM health (uptime, disk, memory, load, shelley status)
+- Timer schedule and next fire times
+- Recent scheduled runs with conversation IDs
+- Today's daily log (live)
+- Long-term memory contents
+- Agent identity
+
+Access it at `https://vmname.exe.xyz:8000/` — authenticated via exe.dev proxy,
+so only VM owners can see it. JSON API available at `/api/status`.
+
 ## How It Works
 
 `run-prompt.sh` reads a prompt file, substitutes date variables, and calls:
