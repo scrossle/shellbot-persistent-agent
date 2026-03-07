@@ -104,7 +104,7 @@ done
 sudo systemctl daemon-reload
 
 # Enable and start all timers
-for timer in agent-morning agent-evening agent-health agent-weekly; do
+for timer in agent-morning agent-evening agent-health agent-weekly agent-curiosity; do
     sudo systemctl enable --now "${timer}.timer" 2>/dev/null
     echo "  Enabled ${timer}.timer"
 done

@@ -1,0 +1,10 @@
+[Unit]
+Description=Agent curiosity exploration
+After=network.target shelley.service
+
+[Service]
+Type=oneshot
+User=exedev
+ExecStart=/home/exedev/.agent/bin/run-prompt.sh /home/exedev/.agent/prompts/curiosity.md
+TimeoutStartSec=600
+Environment=HOME=/home/exedev

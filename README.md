@@ -20,6 +20,7 @@ That's it. Your VM now has:
 | `agent-morning` | 07:00 daily | System check, resurfaces a random old memory, emails if needed |
 | `agent-health` | Every 6 hours | Disk/memory/services check, alerts only on problems |
 | `agent-evening` | 22:00 daily | Scans all conversations from shelley.db, extracts durable knowledge, finds connections |
+| `agent-curiosity` | 23:00 daily | Composes a web search from recent memory, logs surprising findings |
 | `agent-weekly` | Sunday 22:30 | Summarizes the week, cleans up old logs, emails digest |
 
 ## Memory Hierarchy
@@ -82,6 +83,20 @@ forming over multiple days. Connections are logged under `## Connections`.
 Both are optional — they produce nothing when nothing is there. They compound
 over time as memory accumulates.
 
+### Curiosity
+
+At 23:00, after consolidation, the agent composes a web search query derived from
+the intersection of recent activity and long-term interests. It searches for something
+*adjacent* to what the owner has been working on — not the topic itself, but a
+neighboring idea. Results are evaluated against memory: only findings that are
+surprising *and* connect to existing knowledge get logged.
+
+Findings appear as `## Curiosity` entries in the daily log. They don't trigger email —
+they surface organically through morning resurfacing or evening consolidation if
+they turn out to matter.
+
+Disable it by adding `curiosity: off` to `~/.agent/identity.md`.
+
 ## How It Works
 
 `run-prompt.sh` reads a prompt file, substitutes date variables, and calls:
@@ -132,7 +147,7 @@ nano ~/.agent/identity.md
 ## Uninstall
 
 ```bash
-sudo systemctl disable --now agent-{morning,evening,health,weekly}.timer
+sudo systemctl disable --now agent-{morning,evening,health,weekly,curiosity}.timer
 sudo rm /etc/systemd/system/agent-*
 sudo systemctl daemon-reload
 # Optionally: rm -rf ~/.agent
