@@ -17,9 +17,9 @@ That's it. Your VM now has:
 
 | Timer | Schedule | What it does |
 |-------|----------|--------------|
-| `agent-morning` | 07:00 daily | System check, reads yesterday's log, writes daily entry, emails if needed |
+| `agent-morning` | 07:00 daily | System check, resurfaces a random old memory, emails if needed |
 | `agent-health` | Every 6 hours | Disk/memory/services check, alerts only on problems |
-| `agent-evening` | 22:00 daily | Consolidates daily log, promotes durable facts to long-term memory |
+| `agent-evening` | 22:00 daily | Scans all conversations from shelley.db, extracts durable knowledge, finds connections |
 | `agent-weekly` | Sunday 22:30 | Summarizes the week, cleans up old logs, emails digest |
 
 ## Memory Hierarchy
@@ -39,26 +39,48 @@ That's it. Your VM now has:
 ### How Memory Flows
 
 ```
-  Interactive conversations
+  Interactive conversations (web UI, CLI)
          │
-         │ agent appends observations
+         │ stored automatically in shelley.db
          ▼
-    daily/YYYY-MM-DD.md    (ephemeral, kept 30 days)
-         │
-         │ evening consolidation promotes durable facts
-         ▼
-    LONGTERM.md            (curated, human + agent edit)
-         │
-         │ weekly consolidation summarizes & prunes
-         ▼
-    weekly/YYYY-WNN.md     (archive, read-only after creation)
+  Evening consolidation scans shelley.db ──► extracts durable knowledge
+         │                                         │
+         │ also reads today's daily log             │
+         ▼                                         ▼
+    daily/YYYY-MM-DD.md                      LONGTERM.md
+    (ephemeral, kept 30 days)                (curated, ≤200 lines)
+         │                                         │
+         │ weekly consolidation                     │
+         ▼                                         │
+    weekly/YYYY-WNN.md ◄───── promotes recurring themes
+    (archive)
 ```
 
 - **Daily logs** are append-only scratch space. Cheap to write, auto-deleted after 30 days.
 - **LONGTERM.md** is the durable store. Evening consolidation appends; humans prune.
-  Target: under 100 lines. Quality over quantity.
+  Target: under 200 lines. Quality over quantity.
 - **Weekly summaries** are compressed archives. Useful for "what happened in January?"
 - **identity.md** is the agent's persona. Rarely changed. Always in context.
+- **shelley.db** is the raw source — every conversation is stored and queryable.
+  The evening consolidation mines it automatically; you never need to tell the agent
+  "remember this."
+
+### Serendipity
+
+Two mechanisms help the agent make non-obvious connections:
+
+**Morning resurfacing.** Each morning, the agent pulls a random fragment from the
+past — an old weekly summary, a few lines from LONGTERM.md, or a daily log from
+1-4 weeks ago — and checks whether it connects to yesterday's activity. Connections
+are logged under `## Resurfaced` in the daily log. If nothing clicks, it moves on.
+
+**Evening associations.** During consolidation, the agent has all of today's
+conversations and LONGTERM.md loaded simultaneously. It looks for topics that
+rhyme across conversations, contradictions with existing memories, or patterns
+forming over multiple days. Connections are logged under `## Connections`.
+
+Both are optional — they produce nothing when nothing is there. They compound
+over time as memory accumulates.
 
 ## How It Works
 
@@ -126,3 +148,8 @@ sudo systemctl daemon-reload
 - **Email, not chat.** Alerts go to your inbox. Silence means healthy.
 - **Human in the loop.** The owner edits LONGTERM.md and identity.md.
   The agent suggests; the human curates.
+- **Conversations are automatically remembered.** The evening consolidation scans
+  shelley.db for all of the day's conversations, so nothing falls through the cracks
+  even if the agent didn't journal in real time.
+- **Serendipity by design.** Random resurfacing and associative connection-making
+  are built into the daily cycle, not bolted on.
