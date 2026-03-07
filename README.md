@@ -46,12 +46,12 @@ That's it. Your VM now has:
          ▼
   Evening consolidation scans shelley.db ──► extracts durable knowledge
          │                                         │
-         │ also reads today's daily log             │
+         │ also reads today's daily log            │
          ▼                                         ▼
     daily/YYYY-MM-DD.md                      LONGTERM.md
     (ephemeral, kept 30 days)                (curated, ≤200 lines)
          │                                         │
-         │ weekly consolidation                     │
+         │ weekly consolidation                    │
          ▼                                         │
     weekly/YYYY-WNN.md ◄───── promotes recurring themes
     (archive)
