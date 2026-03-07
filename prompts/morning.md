@@ -10,7 +10,7 @@ Run these commands and capture the output:
 date '+%Y-%m-%d %H:%M %Z'
 uptime
 free -h
-df -h --output=target,pcent,avail | grep -E '/$|/home'
+df -h / 2>/dev/null
 systemctl is-system-running
 systemctl --failed --no-pager
 systemctl is-active shelley.service
