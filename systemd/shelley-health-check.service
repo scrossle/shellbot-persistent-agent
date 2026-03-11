@@ -1,0 +1,12 @@
+[Unit]
+Description=Shelley Comprehensive Health Check
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=exedev
+ExecStart=/usr/local/bin/shelley-health-check
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=shelley-health

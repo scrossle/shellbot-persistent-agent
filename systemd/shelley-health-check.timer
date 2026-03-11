@@ -1,0 +1,11 @@
+[Unit]
+Description=Shelley Health Check Timer (hourly)
+Requires=shelley-health-check.service
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1h
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
