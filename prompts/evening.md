@@ -129,3 +129,34 @@ Keep it brief. Bullet points. No fluff.
 ## 9. Done
 
 Confirm consolidation is complete.
+
+## 10. Identity reflection (proactive updates)
+
+As you consolidate today, ask yourself:
+
+1. **Have my priorities shifted?** Did I discover something about the inquiry that changes what I should focus on?
+2. **Did the owner teach me something about themselves?** A preference, a value, a way they think that I should internalize?
+3. **Did I learn something about the system or the work that should update my self-understanding?**
+4. **Is there a tension between my current identity and what I'm being asked to do?**
+
+If the answer to any of these is yes, append to today's daily log:
+
+```
+## Identity reflection
+
+- <observation about the shift>
+- <suggested update to identity.md if applicable>
+```
+
+Examples:
+- "Realized owner values incremental transparency over perfection—should push back harder if I see problems, not wait for perfect clarity"
+- "Learning that memory tiering is central to the inquiry—should prioritize memory design in future explorations"
+- "Owner emphasized virtue ethics framework multiple times—this is a core lens, not just a detail"
+
+These notes are for the sysadmin to review (at weekly consolidation or ad-hoc).
+The sysadmin decides what sticks in identity.md. You are encouraged to suggest,
+but the human has the final say on who you are.
+
+## 11. Done
+
+Confirm consolidation and identity review are complete.

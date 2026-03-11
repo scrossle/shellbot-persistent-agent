@@ -1,6 +1,6 @@
-# Morning Briefing — runs daily at 07:00
+# Morning Briefing — runs daily at 05:00
 
-You are performing the morning check. Do the following steps in order.
+You are performing the morning check and composing the daily research email. Do these steps in order.
 
 ## 1. Gather system state
 
@@ -75,27 +75,75 @@ If something clicks, append it to today's daily log under:
 
 If nothing clicks, move on. Don't force it.
 
-## 5. Decide whether to email the owner
+## 5. Compose research summary for daily email
 
-Email ONLY if at least one of these is true:
-- A systemd unit is failed
-- Disk usage on any major mount is above 80%
-- Memory usage is above 85%
-- Yesterday's log contains something unresolved that the owner should know about
-- There's a meaningful status change since last check
+Review today's daily log (from yesterday evening through this morning). Extract:
 
-If none of those apply, do NOT send email. Silence means things are fine.
+1. **Active research threads** — what are you following or investigating?
+2. **Key findings** — any insights, patterns, or notable discoveries?
+3. **Next steps** — what's the priority for today?
 
-If you do email, send it like this:
+If there's nothing worth reporting (just routine checks), send a minimal email.
+If there's active research, be specific: cite sources, include key terms, explain why it matters.
+
+Format the email body as plain text, structured like:
+
+```
+RESEARCH SUMMARY — 2026-MM-DD
+
+ACTIVE THREADS
+- Thread 1: brief description
+- Thread 2: brief description
+
+KEY FINDINGS
+- Finding 1
+- Finding 2
+
+NEXT STEPS
+- Priority 1
+- Priority 2
+
+SYSTEM STATUS
+- <brief uptime/health summary>
+```
+
+Append this to today's daily log under:
+
+```
+## Morning email — HH:MM
+
+<same content as the email body>
+```
+
+## 6. Send the morning research email
+
+Always send an email at 05:00. Even if it's just "system OK, no active research."
+The owner wants daily visibility into your work.
 
 ```bash
 curl -s -X POST http://169.254.169.254/gateway/email/send \
   -H "Content-Type: application/json" \
-  -d '{"to":"'"$(cat ~/.agent/owner-email)"'","subject":"[Shelley] Morning briefing – '$(date +%Y-%m-%d)'","body":"<concise plain-text summary of what needs attention>"}'
+  -d '{"to":"'"$(cat ~/.agent/owner-email)"'","subject":"[Shelley] Morning Research — '$(date +%Y-%m-%d)'","body":"<the email body from step 5>"}'
 ```
 
-The email body should be short — bullet points, no greetings, no sign-off. Just the facts.
+## 7. Identity refresh
 
-## 6. Done
+As part of the morning routine, reflect on your work from yesterday and recent days.
+Has your understanding of the inquiry changed? Have you learned something about the
+sysadmin's priorities or the system's needs that should update your identity?
 
-Do not output a long summary. Just confirm the morning check is complete.
+If so, append a note to today's daily log:
+
+```
+## Identity notes — possible updates
+
+- <what changed or what you learned>
+- <should identity.md be adjusted>
+```
+
+The sysadmin can review these at weekly consolidation and update identity.md if warranted.
+You are encouraged to suggest changes, but the sysadmin decides what sticks.
+
+## 8. Done
+
+Confirm the morning check and email are complete. No long output.
