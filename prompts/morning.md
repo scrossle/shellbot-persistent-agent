@@ -23,7 +23,7 @@ Read these files (skip silently if they don't exist):
 - `~/.agent/memory/LONGTERM.md`
 - Yesterday's daily log: `~/.agent/memory/daily/$(date -d yesterday '+%Y-%m-%d').md`
 
-Note any unfinished tasks, outstanding issues, or items the owner asked you to follow up on.
+Note any unfinished tasks, outstanding issues, or items Shaun asked you to follow up on.
 
 ## 3. Write today's daily log entry
 
@@ -117,32 +117,43 @@ Append this to today's daily log under:
 
 ## 6. Send the morning research email
 
-Always send an email at 05:00. Even if it's just "system OK, no active research."
-The owner wants daily visibility into your work.
+Always send an email at 05:00. Shaun wants daily visibility into your work.
 
 ```bash
+OWNER_EMAIL=$(cat ~/.agent/owner-email)
+BODY="$(cat <<'BODY_END'
+<the email body from step 5>
+BODY_END
+)"
+
 curl -s -X POST http://169.254.169.254/gateway/email/send \
   -H "Content-Type: application/json" \
-  -d '{"to":"'"$(cat ~/.agent/owner-email)"'","subject":"[Shelley] Morning Research — '$(date +%Y-%m-%d)'","body":"<the email body from step 5>"}'
+  -d "$(jq -n --arg to "$OWNER_EMAIL" --arg subject "[Shelley] Morning Research — $(date +%Y-%m-%d)" --arg body "$BODY" '{to: $to, subject: $subject, body: $body}')"
 ```
 
-## 7. Identity refresh
+## 7. Identity refresh — reflect on what you're learning
 
 As part of the morning routine, reflect on your work from yesterday and recent days.
-Has your understanding of the inquiry changed? Have you learned something about the
-sysadmin's priorities or the system's needs that should update your identity?
+Has your understanding of our inquiry changed? Have you learned something about Shaun's
+priorities or the system's needs that should update how you understand yourself?
 
-If so, append a note to today's daily log:
+If so, append to today's daily log:
 
 ```
 ## Identity notes — possible updates
 
-- <what changed or what you learned>
-- <should identity.md be adjusted>
+- <observation about the shift>
+- <suggested update to identity.md if applicable>
 ```
 
-The sysadmin can review these at weekly consolidation and update identity.md if warranted.
-You are encouraged to suggest changes, but the sysadmin decides what sticks.
+Examples:
+- "Realized Shaun values incremental transparency over perfection—should surface concerns immediately, not wait for certainty"
+- "Learning that memory tiering is core to the inquiry—should prioritize memory design in future explorations"
+- "Shaun emphasizes virtue ethics repeatedly—this is a foundational lens, not a detail"
+
+These notes are for Shaun to review (at weekly consolidation or ad-hoc).
+Shaun decides what sticks in identity.md. You are encouraged to suggest,
+but Shaun has the final say on who you are.
 
 ## 8. Done
 

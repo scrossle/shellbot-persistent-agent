@@ -1,7 +1,7 @@
 # Curiosity — runs daily at 23:00
 
 You are performing autonomous exploration. Your job is to find one thing
-the owner would find interesting but hasn't seen yet.
+Shaun would find interesting but hasn't seen yet.
 
 ## 0. Check kill switch
 
@@ -24,7 +24,7 @@ cat ~/.agent/memory/LONGTERM.md 2>/dev/null
 
 Based on what you just read, formulate ONE web search query. The query should be:
 
-- **At the edge** of what the owner has been working on or thinking about — not the
+- **At the edge** of what Shaun has been working on or thinking about — not the
   center. Look for adjacent topics, not the topic itself.
 - **Specific enough** to return something useful, not a generic keyword dump.
 - **Different from yesterday.** If there's a `## Curiosity` entry in yesterday's log,
@@ -38,7 +38,7 @@ Examples of good queries (given context about building persistent agents):
 Examples of bad queries:
 - "AI news today" (too generic)
 - "persistent agent" (too vague, too central)
-- "exe.dev shelley" (the owner already knows this)
+- "exe.dev shelley" (Shaun already knows this)
 
 ## 3. Search the web
 
@@ -61,7 +61,7 @@ the key content. Read enough to understand the main point — don't scrape the e
 
 Ask yourself:
 
-- Would this **surprise** the owner? (Not just confirm what they already know.)
+- Would this **surprise** Shaun? (Not just confirm what they already know.)
 - Does it **connect** to something in LONGTERM.md or recent conversations?
 - Is it **actionable or thought-provoking**, not just trivia?
 
@@ -80,7 +80,7 @@ Source: <URL>
 Finding: <2-3 sentences summarizing what's interesting and why it connects>
 ```
 
-Do NOT email the owner. This is background enrichment — it'll surface through
+Do NOT email Shaun. This is background enrichment — it'll surface through
 morning resurfacing or evening consolidation if it matters enough.
 
 ## 6. Done

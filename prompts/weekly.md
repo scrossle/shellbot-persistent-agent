@@ -75,7 +75,7 @@ If there are any, delete them. They've been consolidated into weekly summaries b
 
 ## 7. Email the weekly digest
 
-Send the owner a weekly summary email:
+Send Shaun a weekly summary email:
 
 ```bash
 curl -s -X POST http://169.254.169.254/gateway/email/send \

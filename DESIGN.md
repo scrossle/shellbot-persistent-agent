@@ -12,7 +12,7 @@ A single `setup.sh` that turns a blank exe.dev VM into a persistent agent with:
 ```
 ~/.agent/
 ├── AGENTS.md              # Injected into Shelley — tells it about the memory system
-├── identity.md            # Who the agent is, voice, preferences
+├── identity.md            # Who you are, voice, preferences
 ├── memory/
 │   ├── LONGTERM.md        # Curated durable knowledge (agent + human edit)
 │   ├── daily/
@@ -83,7 +83,7 @@ within 1 hour, even if Shelley itself is unable to reason.
 
 ## Notification
 
-All scheduled tasks include instruction to email the owner (via /gateway/email/send)
+All scheduled tasks include instruction to email Shaun (via /gateway/email/send)
 only when something actionable or notable happens. No spam.
 
 ## Setup Flow

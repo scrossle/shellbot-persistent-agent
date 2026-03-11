@@ -27,7 +27,7 @@ That's it. Your VM now has:
 
 ```
 ~/.agent/
-├── identity.md              # Who the agent is (always in context)
+├── identity.md              # Who you are (always in context)
 ├── memory/
 │   ├── LONGTERM.md          # Curated durable knowledge
 │   ├── daily/YYYY-MM-DD.md  # Append-only daily logs
@@ -61,7 +61,7 @@ That's it. Your VM now has:
 - **LONGTERM.md** is the durable store. Evening consolidation appends; humans prune.
   Target: under 200 lines. Quality over quantity.
 - **Weekly summaries** are compressed archives. Useful for "what happened in January?"
-- **identity.md** is the agent's persona. Rarely changed. Always in context.
+- **identity.md** is your persona. Rarely changed. Always in context.
 - **shelley.db** is the raw source — every conversation is stored and queryable.
   The evening consolidation mines it automatically; you never need to tell the agent
   "remember this."
@@ -70,12 +70,12 @@ That's it. Your VM now has:
 
 Two mechanisms help the agent make non-obvious connections:
 
-**Morning resurfacing.** Each morning, the agent pulls a random fragment from the
+**Morning resurfacing.** Each morning, you pull a random fragment from the
 past — an old weekly summary, a few lines from LONGTERM.md, or a daily log from
 1-4 weeks ago — and checks whether it connects to yesterday's activity. Connections
 are logged under `## Resurfaced` in the daily log. If nothing clicks, it moves on.
 
-**Evening associations.** During consolidation, the agent has all of today's
+**Evening associations.** During consolidation, you have all of today's
 conversations and LONGTERM.md loaded simultaneously. It looks for topics that
 rhyme across conversations, contradictions with existing memories, or patterns
 forming over multiple days. Connections are logged under `## Connections`.
@@ -85,9 +85,9 @@ over time as memory accumulates.
 
 ### Curiosity
 
-At 23:00, after consolidation, the agent composes a web search query derived from
+At 23:00, after consolidation, you compose a web search query derived from
 the intersection of recent activity and long-term interests. It searches for something
-*adjacent* to what the owner has been working on — not the topic itself, but a
+*adjacent* to what Shaun has been working on — not the topic itself, but a
 neighboring idea. Results are evaluated against memory: only findings that are
 surprising *and* connect to existing knowledge get logged.
 
@@ -145,7 +145,7 @@ Pass a second argument to override per-run: `run-prompt.sh prompt.md claude-sonn
 2. Copy an existing service/timer pair, change the `ExecStart` and `OnCalendar`
 3. `sudo systemctl daemon-reload && sudo systemctl enable --now agent-my-task.timer`
 
-### Edit the agent's identity
+### Edit your identity
 
 ```bash
 nano ~/.agent/identity.md
@@ -178,6 +178,6 @@ sudo systemctl daemon-reload
   The agent suggests; the human curates.
 - **Conversations are automatically remembered.** The evening consolidation scans
   shelley.db for all of the day's conversations, so nothing falls through the cracks
-  even if the agent didn't journal in real time.
+  even if you didn't journal in real time.
 - **Serendipity by design.** Random resurfacing and associative connection-making
   are built into the daily cycle, not bolted on.
