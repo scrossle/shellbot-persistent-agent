@@ -52,14 +52,34 @@ A single `setup.sh` that turns a blank exe.dev VM into a persistent agent with:
    Sunday (or the weekly timer) reads the week's dailies, extracts what matters,
    writes the weekly, and promotes durable facts to LONGTERM.md.
 
-## Schedules
+## Schedules & Health Monitoring
+
+### Agentic Schedules (Shelley runs these)
 
 | Timer              | When                | What                                           |
 |--------------------|---------------------|-------------------------------------------------|
 | agent-morning      | 07:00 daily         | Briefing: date, weather, disk/memory, agenda    |
-| agent-health       | every 6 hours       | Check disk, memory, services, alert if trouble  |
 | agent-evening      | 22:00 daily         | Consolidate today's daily log, prune, plan      |
 | agent-weekly       | Sunday 22:30        | Summarize week, promote to LONGTERM.md          |
+
+### Non-Agentic Health Monitoring
+
+The `shelley-health-check` timer runs **hourly** as a non-agentic fallback when the LLM gateway 
+may be unavailable. It checks:
+
+- **LLM Gateway connectivity** (HTTP reachability)
+- **Shelley service** (process, socket, database)
+- **System resources** (memory, disk)
+- **Recent logs** (crashes, panics)
+- **API quota** (detects payment required, rate limiting)
+
+If any issues are found:
+1. Invokes `claude -p` (Claude Code) with context (60s timeout)
+2. Emails sysadmin with Claude's assessment and debug commands
+3. Silent if all OK
+
+This ensures that extended outages or resource exhaustion are detected and escalated 
+within 1 hour, even if Shelley itself is unable to reason.
 
 ## Notification
 

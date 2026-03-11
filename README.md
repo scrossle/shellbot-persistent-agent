@@ -18,7 +18,7 @@ That's it. Your VM now has:
 | Timer | Schedule | What it does |
 |-------|----------|--------------|
 | `agent-morning` | 07:00 daily | System check, resurfaces a random old memory, emails if needed |
-| `agent-health` | Every 6 hours | Disk/memory/services check, alerts only on problems |
+| `shelley-health-check` | Hourly | Non-agentic: gateway, service, database, resources, quota. Invokes Claude if issues found |
 | `agent-evening` | 22:00 daily | Scans all conversations from shelley.db, extracts durable knowledge, finds connections |
 | `agent-curiosity` | 23:00 daily | Composes a web search from recent memory, logs surprising findings |
 | `agent-weekly` | Sunday 22:30 | Summarizes the week, cleans up old logs, emails digest |
