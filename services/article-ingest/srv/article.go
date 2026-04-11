@@ -70,12 +70,23 @@ func (s *Server) HandleIngest(w http.ResponseWriter, r *http.Request) {
 	var req ArticleIngestRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		slog.Warn("failed to decode JSON", "error", err)
 		json.NewEncoder(w).Encode(ArticleIngestResponse{
 			Status:  "error",
-			Message: "invalid JSON or missing url field",
+			Message: "invalid JSON",
 		})
 		return
 	}
+
+	// Log the incoming request for debugging
+	slog.Info("received ingest request",
+		"url_field", req.URL,
+		"text_field_preview", func() string {
+			if len(req.Text) > 100 {
+				return req.Text[:100] + "..."
+			}
+			return req.Text
+		}())
 
 	// Extract URL from either url or text field
 	articleURL := strings.TrimSpace(req.URL)
