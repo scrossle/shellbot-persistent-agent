@@ -249,47 +249,48 @@ func validateURL(articleURL string) error {
 
 // expandShortenedURL follows redirects to get the final URL
 func expandShortenedURL(shortURL string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodHead, shortURL, nil)
-	if err != nil {
-		return shortURL, nil // fallback to original
-	}
-
-	// Spoof browser
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse // Don't follow redirects, let us handle them
+			// Allow up to 10 redirects
+			if len(via) >= 10 {
+				return http.ErrUseLastResponse
+			}
+			return nil
 		},
+		Timeout: 15 * time.Second,
 	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, shortURL, nil)
+	if err != nil {
+		return shortURL, nil
+	}
+
+	// Spoof Chrome browser
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return shortURL, nil // fallback
+		return shortURL, nil
 	}
 	defer resp.Body.Close()
 
-	// If it's a redirect, return the Location header
-	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
-		location := resp.Header.Get("Location")
-		if location != "" {
-			return location, nil
-		}
-	}
-
-	return shortURL, nil
+	// Return the final URL after all redirects
+	return resp.Request.URL.String(), nil
 }
 
 func fetchArticle(articleURL string) (*readability.Article, error) {
 	// Expand shortened URLs (e.g., share.google)
 	if strings.Contains(articleURL, "share.google/") {
 		expanded, err := expandShortenedURL(articleURL)
-		if err == nil && expanded != articleURL {
+		if expanded != "" && expanded != articleURL {
 			slog.Info("expanded shortened URL", "short", articleURL, "expanded", expanded)
 			articleURL = expanded
+		} else if err != nil {
+			slog.Warn("failed to expand URL", "url", articleURL, "error", err)
 		}
 	}
 
