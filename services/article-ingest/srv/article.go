@@ -283,6 +283,51 @@ func expandShortenedURL(shortURL string) (string, error) {
 	return resp.Request.URL.String(), nil
 }
 
+// fetchViaJina uses jina.ai reader to bypass Cloudflare and convert to markdown
+func fetchViaJina(articleURL string) (*readability.Article, error) {
+	jinaURL := "https://r.jina.ai/" + url.QueryEscape(articleURL)
+	slog.Info("attempting jina reader", "original_url", articleURL, "jina_url", jinaURL)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, jinaURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("jina reader returned %d", resp.StatusCode)
+	}
+
+	limitedBody := io.LimitReader(resp.Body, 10*1024*1024)
+	body, err := io.ReadAll(limitedBody)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse the markdown from jina
+	parsedURL, _ := url.Parse(articleURL)
+	article, err := readability.FromReader(bytes.NewReader(body), parsedURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if article.Title == "" {
+		article.Title = "Untitled"
+	}
+
+	return &article, nil
+}
+
 func fetchArticle(articleURL string) (*readability.Article, error) {
 	// Try markdown variant first (Cloudflare-friendly)
 	if !strings.HasSuffix(articleURL, ".md") && !strings.Contains(articleURL, "share.google") {
@@ -346,6 +391,18 @@ func fetchArticle(articleURL string) (*readability.Article, error) {
 		return nil, fmt.Errorf("fetch URL: %w", err)
 	}
 	defer resp.Body.Close()
+
+	// If we hit a 403 (Cloudflare, anti-bot), try Jina reader as fallback
+	if resp.StatusCode == http.StatusForbidden {
+		slog.Info("hit 403, trying jina reader fallback", "url", articleURL)
+		article, err := fetchViaJina(articleURL)
+		if err == nil {
+			slog.Info("jina reader succeeded", "url", articleURL)
+			return article, nil
+		}
+		slog.Warn("jina reader also failed", "url", articleURL, "error", err)
+		return nil, fmt.Errorf("HTTP 403 (Cloudflare/anti-bot), Jina fallback also failed: %w", err)
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
