@@ -1,0 +1,19 @@
+[Unit]
+Description=Article ingest webhook service for daily log synthesis
+After=network-online.target
+
+[Service]
+Type=simple
+User=exedev
+Group=exedev
+WorkingDirectory=/home/exedev
+ExecStart=/usr/local/bin/article-ingest-server -listen=:8100
+Restart=always
+RestartSec=5
+Environment=HOME=/home/exedev
+Environment=USER=exedev
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
