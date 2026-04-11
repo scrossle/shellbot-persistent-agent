@@ -67,6 +67,12 @@ func (s *Server) HandleIngest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Read raw body for debugging
+	bodyBytes, _ := io.ReadAll(r.Body)
+	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+	
+	slog.Info("raw request body", "content_type", r.Header.Get("Content-Type"), "body", string(bodyBytes[:min(len(bodyBytes), 200)]))
+	
 	var req ArticleIngestRequest
 	contentType := r.Header.Get("Content-Type")
 	
@@ -184,6 +190,13 @@ func (s *Server) HandleIngest(w http.ResponseWriter, r *http.Request) {
 }
 
 // validateURL checks if a URL is safe to fetch
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 // extractURLFromText finds the first http(s) URL in text
 func extractURLFromText(text string) (string, error) {
 	re := regexp.MustCompile(`https?://[^\s\)<>]+`)
