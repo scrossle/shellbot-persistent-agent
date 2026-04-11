@@ -68,14 +68,33 @@ func (s *Server) HandleIngest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req ArticleIngestRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		slog.Warn("failed to decode JSON", "error", err)
-		json.NewEncoder(w).Encode(ArticleIngestResponse{
-			Status:  "error",
-			Message: "invalid JSON",
-		})
-		return
+	contentType := r.Header.Get("Content-Type")
+	
+	// Handle both JSON and URL-encoded form data
+	if strings.Contains(contentType, "application/x-www-form-urlencoded") {
+		// Parse form data
+		if err := r.ParseForm(); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			slog.Warn("failed to parse form data", "error", err)
+			json.NewEncoder(w).Encode(ArticleIngestResponse{
+				Status:  "error",
+				Message: "invalid form data",
+			})
+			return
+		}
+		req.URL = strings.TrimSpace(r.FormValue("url"))
+		req.Text = strings.TrimSpace(r.FormValue("text"))
+	} else {
+		// Parse JSON
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			slog.Warn("failed to decode JSON", "error", err)
+			json.NewEncoder(w).Encode(ArticleIngestResponse{
+				Status:  "error",
+				Message: "invalid JSON",
+			})
+			return
+		}
 	}
 
 	// Log the incoming request for debugging
