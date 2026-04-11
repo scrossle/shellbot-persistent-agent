@@ -11,14 +11,17 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/go-shiori/go-readability"
 )
 
+
 type ArticleIngestRequest struct {
-	URL string `json:"url"`
+	URL  string `json:"url"`
+	Text string `json:"text"`
 }
 
 type ArticleIngestResponse struct {
@@ -74,19 +77,35 @@ func (s *Server) HandleIngest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.TrimSpace(req.URL) == "" {
+	// Extract URL from either url or text field
+	articleURL := strings.TrimSpace(req.URL)
+	if articleURL == "" && req.Text != "" {
+		var err error
+		articleURL, err = extractURLFromText(req.Text)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			slog.Warn("failed to extract URL from text", "error", err)
+			json.NewEncoder(w).Encode(ArticleIngestResponse{
+				Status:  "error",
+				Message: fmt.Sprintf("failed to extract URL: %v", err),
+			})
+			return
+		}
+	}
+
+	if articleURL == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ArticleIngestResponse{
 			Status:  "error",
-			Message: "url cannot be empty",
+			Message: "url or text field required",
 		})
 		return
 	}
 
 	// Validate URL
-	if err := validateURL(req.URL); err != nil {
+	if err := validateURL(articleURL); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		slog.Warn("invalid URL", "url", req.URL, "error", err)
+		slog.Warn("invalid URL", "url", articleURL, "error", err)
 		json.NewEncoder(w).Encode(ArticleIngestResponse{
 			Status:  "error",
 			Message: fmt.Sprintf("invalid URL: %v", err),
@@ -95,10 +114,10 @@ func (s *Server) HandleIngest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch the article
-	slog.Info("ingest request", "url", req.URL)
-	article, err := fetchArticle(req.URL)
+	slog.Info("ingest request", "url", articleURL)
+	article, err := fetchArticle(articleURL)
 	if err != nil {
-		slog.Warn("failed to fetch article", "url", req.URL, "error", err)
+		slog.Warn("failed to fetch article", "url", articleURL, "error", err)
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ArticleIngestResponse{
 			Status:  "error",
@@ -135,6 +154,18 @@ func (s *Server) HandleIngest(w http.ResponseWriter, r *http.Request) {
 }
 
 // validateURL checks if a URL is safe to fetch
+// extractURLFromText finds the first http(s) URL in text
+func extractURLFromText(text string) (string, error) {
+	re := regexp.MustCompile(`https?://[^\s\)<>]+`)
+	matches := re.FindStringSubmatch(text)
+	if len(matches) == 0 {
+		return "", fmt.Errorf("no URL found in text")
+	}
+	// Clean up trailing punctuation
+	url := strings.TrimRight(matches[0], ".,;:!?)\"'")
+	return url, nil
+}
+
 func validateURL(articleURL string) error {
 	parsedURL, err := url.Parse(articleURL)
 	if err != nil {
