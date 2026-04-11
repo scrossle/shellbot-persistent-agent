@@ -291,6 +291,12 @@ func fetchViaKarakeep(articleURL string) (*readability.Article, error) {
 		karakeepURL = "http://localhost:3000"
 	}
 
+	karakeepAPIKey := os.Getenv("KARAKEEP_API_KEY")
+	if karakeepAPIKey == "" {
+		slog.Warn("karakeep API key not set", "env_var", "KARAKEEP_API_KEY")
+		return nil, fmt.Errorf("KARAKEEP_API_KEY not configured")
+	}
+
 	slog.Info("archiving to karakeep", "url", articleURL)
 
 	// Karakeep will crawl with headless browser and store full rendered content
@@ -311,6 +317,7 @@ func fetchViaKarakeep(articleURL string) (*readability.Article, error) {
 
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(payloadBytes))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+karakeepAPIKey)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
