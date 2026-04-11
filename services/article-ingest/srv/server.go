@@ -8,12 +8,14 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
 	"time"
 
+	"golang.org/x/time/rate"
 	"srv.exe.dev/db"
 	"srv.exe.dev/db/dbgen"
 )
@@ -23,6 +25,8 @@ type Server struct {
 	Hostname     string
 	TemplatesDir string
 	StaticDir    string
+	limiter      *rate.Limiter
+	apiToken     string
 }
 
 type pageData struct {
@@ -48,6 +52,8 @@ func New(dbPath, hostname string) (*Server, error) {
 		Hostname:     hostname,
 		TemplatesDir: filepath.Join(baseDir, "templates"),
 		StaticDir:    filepath.Join(baseDir, "static"),
+		limiter:      rate.NewLimiter(1, 5), // 1 req/sec, burst of 5
+		apiToken:     os.Getenv("ARTICLE_INGEST_TOKEN"),
 	}
 	if err := srv.setUpDatabase(dbPath); err != nil {
 		return nil, err
@@ -154,8 +160,8 @@ func (s *Server) setUpDatabase(dbPath string) error {
 func (s *Server) Serve(addr string) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.HandleRoot)
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(s.StaticDir))))
 	mux.HandleFunc("POST /ingest", s.HandleIngest)
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(s.StaticDir))))
 	slog.Info("starting server", "addr", addr)
 	return http.ListenAndServe(addr, mux)
 }

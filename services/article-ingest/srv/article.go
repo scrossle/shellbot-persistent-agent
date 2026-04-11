@@ -32,6 +32,29 @@ type ArticleIngestResponse struct {
 func (s *Server) HandleIngest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
+	// Check rate limit
+	if !s.limiter.Allow() {
+		w.WriteHeader(http.StatusTooManyRequests)
+		slog.Warn("rate limit exceeded", "ip", r.RemoteAddr)
+		json.NewEncoder(w).Encode(ArticleIngestResponse{
+			Status:  "error",
+			Message: "rate limit exceeded",
+		})
+		return
+	}
+
+	// Check API token
+	token := r.URL.Query().Get("token")
+	if s.apiToken != "" && token != s.apiToken {
+		w.WriteHeader(http.StatusUnauthorized)
+		slog.Warn("unauthorized access attempt", "ip", r.RemoteAddr)
+		json.NewEncoder(w).Encode(ArticleIngestResponse{
+			Status:  "error",
+			Message: "unauthorized",
+		})
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		json.NewEncoder(w).Encode(ArticleIngestResponse{
@@ -56,6 +79,17 @@ func (s *Server) HandleIngest(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(ArticleIngestResponse{
 			Status:  "error",
 			Message: "url cannot be empty",
+		})
+		return
+	}
+
+	// Validate URL
+	if err := validateURL(req.URL); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		slog.Warn("invalid URL", "url", req.URL, "error", err)
+		json.NewEncoder(w).Encode(ArticleIngestResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("invalid URL: %v", err),
 		})
 		return
 	}
@@ -100,6 +134,45 @@ func (s *Server) HandleIngest(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// validateURL checks if a URL is safe to fetch
+func validateURL(articleURL string) error {
+	parsedURL, err := url.Parse(articleURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL format: %w", err)
+	}
+
+	// Reject non-HTTP(S)
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return fmt.Errorf("only HTTP(S) URLs allowed, got %q", parsedURL.Scheme)
+	}
+
+	hostname := parsedURL.Hostname()
+	if hostname == "" {
+		return fmt.Errorf("URL has no hostname")
+	}
+
+	// Reject localhost and private IP ranges (SSRF protection)
+	if hostname == "localhost" || hostname == "127.0.0.1" || hostname == "::1" {
+		return fmt.Errorf("localhost not allowed")
+	}
+
+	// Reject private IP ranges
+	if strings.HasPrefix(hostname, "127.") ||
+		strings.HasPrefix(hostname, "10.") ||
+		strings.HasPrefix(hostname, "172.") ||
+		strings.HasPrefix(hostname, "192.168.") ||
+		strings.HasPrefix(hostname, "169.254.") { // Link-local
+		return fmt.Errorf("private IP ranges not allowed")
+	}
+
+	// Reject file:// and data: schemes (defense in depth)
+	if parsedURL.Scheme == "file" || parsedURL.Scheme == "data" {
+		return fmt.Errorf("scheme %q not allowed", parsedURL.Scheme)
+	}
+
+	return nil
+}
+
 func fetchArticle(articleURL string) (*readability.Article, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -121,7 +194,9 @@ func fetchArticle(articleURL string) (*readability.Article, error) {
 		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	// Limit response body size to 10MB to prevent resource exhaustion
+	limitedBody := io.LimitReader(resp.Body, 10*1024*1024)
+	body, err := io.ReadAll(limitedBody)
 	if err != nil {
 		return nil, fmt.Errorf("read body: %w", err)
 	}
@@ -170,10 +245,10 @@ func callLLMGateway(prompt string) (string, error) {
 	}
 
 	type Request struct {
-		Model    string    `json:"model"`
-		MaxTokens int      `json:"max_tokens"`
-		System   string    `json:"system"`
-		Messages []Message `json:"messages"`
+		Model     string    `json:"model"`
+		MaxTokens int       `json:"max_tokens"`
+		System    string    `json:"system"`
+		Messages  []Message `json:"messages"`
 	}
 
 	type ContentBlock struct {

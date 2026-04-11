@@ -12,6 +12,7 @@ Restart=always
 RestartSec=5
 Environment=HOME=/home/exedev
 Environment=USER=exedev
+Environment=ARTICLE_INGEST_TOKEN=001b5a11977dcec3275b7928fa22456683fca586ac11ebb7e25758f44f7aaf62
 StandardOutput=journal
 StandardError=journal
 
