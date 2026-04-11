@@ -283,6 +283,56 @@ func expandShortenedURL(shortURL string) (string, error) {
 	return resp.Request.URL.String(), nil
 }
 
+// fetchViaKarakeep attempts to retrieve content via local Karakeep container
+func fetchViaKarakeep(articleURL string) (*readability.Article, error) {
+	// Note: ReadabilityFromReader returns Article not *Article, so we take address
+	karakeepURL := os.Getenv("KARAKEEP_URL")
+	if karakeepURL == "" {
+		return nil, fmt.Errorf("KARAKEEP_URL not configured")
+	}
+
+	// Karakeep API endpoint (adjust if needed)
+	apiURL := karakeepURL + "/api/fetch?url=" + url.QueryEscape(articleURL)
+	slog.Info("attempting karakeep", "url", apiURL)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("karakeep returned %d", resp.StatusCode)
+	}
+
+	limitedBody := io.LimitReader(resp.Body, 10*1024*1024)
+	body, err := io.ReadAll(limitedBody)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse the content from Karakeep
+	parsedURL, _ := url.Parse(articleURL)
+	article, err := readability.FromReader(bytes.NewReader(body), parsedURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if article.Title == "" {
+		article.Title = "Untitled"
+	}
+
+	return &article, nil
+}
+
 // fetchViaJina uses jina.ai reader to bypass Cloudflare and convert to markdown
 func fetchViaJina(articleURL string) (*readability.Article, error) {
 	jinaURL := "https://r.jina.ai/" + url.QueryEscape(articleURL)
@@ -392,16 +442,30 @@ func fetchArticle(articleURL string) (*readability.Article, error) {
 	}
 	defer resp.Body.Close()
 
-	// If we hit a 403 (Cloudflare, anti-bot), try Jina reader as fallback
+	// If we hit a 403 (Cloudflare, anti-bot), try fallbacks
 	if resp.StatusCode == http.StatusForbidden {
-		slog.Info("hit 403, trying jina reader fallback", "url", articleURL)
+		slog.Info("hit 403, trying fallbacks", "url", articleURL)
+		
+		// Try Karakeep first if configured
+		if os.Getenv("KARAKEEP_URL") != "" {
+			slog.Info("trying karakeep fallback")
+			article, err := fetchViaKarakeep(articleURL)
+			if err == nil {
+				slog.Info("karakeep succeeded", "url", articleURL)
+				return article, nil
+			}
+			slog.Warn("karakeep failed", "error", err)
+		}
+		
+		// Fall back to Jina reader
+		slog.Info("trying jina reader fallback", "url", articleURL)
 		article, err := fetchViaJina(articleURL)
 		if err == nil {
 			slog.Info("jina reader succeeded", "url", articleURL)
 			return article, nil
 		}
 		slog.Warn("jina reader also failed", "url", articleURL, "error", err)
-		return nil, fmt.Errorf("HTTP 403 (Cloudflare/anti-bot), Jina fallback also failed: %w", err)
+		return nil, fmt.Errorf("HTTP 403 (Cloudflare/anti-bot), all fallbacks failed")
 	}
 
 	if resp.StatusCode != http.StatusOK {
