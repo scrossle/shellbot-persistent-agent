@@ -283,54 +283,56 @@ func expandShortenedURL(shortURL string) (string, error) {
 	return resp.Request.URL.String(), nil
 }
 
-// fetchViaKarakeep attempts to retrieve content via local Karakeep container
+// fetchViaKarakeep sends URL to Karakeep for archival via headless browser
+// Returns placeholder; content is archived in Karakeep for later retrieval
 func fetchViaKarakeep(articleURL string) (*readability.Article, error) {
-	// Note: ReadabilityFromReader returns Article not *Article, so we take address
 	karakeepURL := os.Getenv("KARAKEEP_URL")
 	if karakeepURL == "" {
-		return nil, fmt.Errorf("KARAKEEP_URL not configured")
+		karakeepURL = "http://localhost:3000"
 	}
 
-	// Karakeep API endpoint (adjust if needed)
-	apiURL := karakeepURL + "/api/fetch?url=" + url.QueryEscape(articleURL)
-	slog.Info("attempting karakeep", "url", apiURL)
+	slog.Info("archiving to karakeep", "url", articleURL)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	// Karakeep will crawl with headless browser and store full rendered content
+	apiURL := karakeepURL + "/api/v1/bookmarks"
+	
+	payload := map[string]interface{}{
+		"type": "link",
+		"url":  articleURL,
+		"crawlPriority": "normal",
+		"source": "api",
+		"note": "Auto-archived from article-ingest webhook",
+	}
+	
+	payloadBytes, _ := json.Marshal(payload)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
-	if err != nil {
-		return nil, err
-	}
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(payloadBytes))
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		slog.Warn("karakeep archive failed", "url", articleURL, "error", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		slog.Warn("karakeep returned error", "status", resp.StatusCode)
 		return nil, fmt.Errorf("karakeep returned %d", resp.StatusCode)
 	}
 
-	limitedBody := io.LimitReader(resp.Body, 10*1024*1024)
-	body, err := io.ReadAll(limitedBody)
-	if err != nil {
-		return nil, err
+	// Karakeep processes the URL asynchronously
+	// Content is available via Karakeep API/UI after crawl completes
+	article := &readability.Article{
+		Title:       "Archived in Karakeep",
+		TextContent: "Article has been sent to Karakeep for archival. Content will be available in Karakeep after headless browser crawl completes.",
 	}
 
-	// Parse the content from Karakeep
-	parsedURL, _ := url.Parse(articleURL)
-	article, err := readability.FromReader(bytes.NewReader(body), parsedURL)
-	if err != nil {
-		return nil, err
-	}
-
-	if article.Title == "" {
-		article.Title = "Untitled"
-	}
-
-	return &article, nil
+	slog.Info("archived to karakeep", "url", articleURL)
+	return article, nil
 }
 
 // fetchViaJina uses jina.ai reader to bypass Cloudflare and convert to markdown
