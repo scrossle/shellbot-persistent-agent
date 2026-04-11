@@ -247,7 +247,52 @@ func validateURL(articleURL string) error {
 	return nil
 }
 
+// expandShortenedURL follows redirects to get the final URL
+func expandShortenedURL(shortURL string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, shortURL, nil)
+	if err != nil {
+		return shortURL, nil // fallback to original
+	}
+
+	// Spoof browser
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse // Don't follow redirects, let us handle them
+		},
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return shortURL, nil // fallback
+	}
+	defer resp.Body.Close()
+
+	// If it's a redirect, return the Location header
+	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+		location := resp.Header.Get("Location")
+		if location != "" {
+			return location, nil
+		}
+	}
+
+	return shortURL, nil
+}
+
 func fetchArticle(articleURL string) (*readability.Article, error) {
+	// Expand shortened URLs (e.g., share.google)
+	if strings.Contains(articleURL, "share.google/") {
+		expanded, err := expandShortenedURL(articleURL)
+		if err == nil && expanded != articleURL {
+			slog.Info("expanded shortened URL", "short", articleURL, "expanded", expanded)
+			articleURL = expanded
+		}
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -256,7 +301,14 @@ func fetchArticle(articleURL string) (*readability.Article, error) {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	// Spoof Chrome to avoid 403s from anti-bot measures
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+	req.Header.Set("Accept-Encoding", "gzip, deflate")
+	req.Header.Set("DNT", "1")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Upgrade-Insecure-Requests", "1")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
